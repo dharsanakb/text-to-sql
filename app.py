@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import sqlite3
@@ -7,10 +6,7 @@ from database import create_database, extract_schema
 from llm_generator import generate_sql
 from sql_validator import validate_sql
 
-
-# --------------------------------------------------
 # 1. Page configuration
-# --------------------------------------------------
 
 st.set_page_config(
     page_title="AgentSQL",
@@ -31,9 +27,7 @@ st.write(
 st.divider()
 
 
-# --------------------------------------------------
 # 2. Upload CSV dataset
-# --------------------------------------------------
 
 st.header("1. Upload CSV Dataset")
 
@@ -48,9 +42,7 @@ if not uploaded_files:
     st.stop()
 
 
-# --------------------------------------------------
 # 3. Create SQLite database
-# --------------------------------------------------
 
 try:
 
@@ -66,9 +58,7 @@ except Exception as error:
     st.stop()
 
 
-# --------------------------------------------------
 # 4. Display database schema
-# --------------------------------------------------
 
 st.header("2. Database Schema")
 
@@ -77,10 +67,7 @@ with st.expander("View tables and columns"):
     st.code(schema)
 
 
-# --------------------------------------------------
 # 5. Enter natural language question
-# --------------------------------------------------
-
 st.header("3. Ask Your Question")
 
 question = st.text_area(
@@ -93,9 +80,7 @@ question = st.text_area(
 )
 
 
-# --------------------------------------------------
 # 6. Generate SQL using the default prompt
-# --------------------------------------------------
 
 if st.button("Generate SQL", type="primary"):
 
@@ -238,9 +223,7 @@ if "result" in st.session_state:
                     )
 
 
-                    # --------------------------------------------------
                     # 10. Display query results
-                    # --------------------------------------------------
 
                     st.header("6. Query Results")
 
@@ -268,9 +251,7 @@ if "result" in st.session_state:
             st.error(message)
 
 
-# --------------------------------------------------
 # 11. Footer
-# --------------------------------------------------
 
 st.divider()
 
