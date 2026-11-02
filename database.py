@@ -1,6 +1,7 @@
 import sqlite3
 import pandas as pd
 import re
+import json
 
 def clean_table_name(filename):
     name = filename.rsplit(".", 1)[0].lower()
@@ -64,4 +65,7 @@ def extract_schema(conn):
                   "default_value": column[4],
                   "primary_key": bool(column[5])
              })
-    return schema    
+    return schema
+
+def schema_to_json(schema):
+    return json.dumps(schema, indent=4)
