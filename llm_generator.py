@@ -2,17 +2,11 @@
 import ollama
 import json
 
-
-# --------------------------------------------------
 # 1. Model configuration
-# --------------------------------------------------
 
 MODEL_NAME = "qwen2.5-coder:7b"
 
-
-# --------------------------------------------------
 # 2. Default system prompt
-# --------------------------------------------------
 
 SYSTEM_PROMPT = """
 You are an expert Natural Language to SQL assistant.
@@ -136,10 +130,7 @@ If the question is not answerable:
 Do not include Markdown code fences in the SQL string.
 """
 
-
-# --------------------------------------------------
 # 3. Build the prompt
-# --------------------------------------------------
 
 def build_prompt(question, schema):
 
@@ -162,10 +153,7 @@ Return the result in the required JSON format.
 
     return prompt
 
-
-# --------------------------------------------------
 # 4. Generate SQL using Ollama
-# --------------------------------------------------
 
 def generate_sql(question, schema):
 
@@ -173,7 +161,6 @@ def generate_sql(question, schema):
         question,
         schema
     )
-
 
     # Expected JSON response structure
     response_schema = {
