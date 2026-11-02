@@ -22,6 +22,7 @@ def create_database(uploaded_files):
             table_name = f"{original_name}_{counter}"
             counter += 1
         df = pd.read_csv(file)
+        df.columns = df.columns.astype(str).str.strip()
         if df.empty or len(df.columns) == 0:
             continue
         if not all(
@@ -44,34 +45,24 @@ def create_database(uploaded_files):
     return conn
 
 def extract_schema(conn):
-
     cursor = conn.cursor()
-
     tables = cursor.execute("""
         SELECT name
         FROM sqlite_master
         WHERE type = 'table'
         ORDER BY name
     """).fetchall()
-
     schema = ""
-
     for (table_name,) in tables:
-
         columns = cursor.execute(
             f'PRAGMA table_info("{table_name}")'
         ).fetchall()
-
         schema += f"\nTable: {table_name}\n"
         schema += "Columns:\n"
-
         for column in columns:
-
             column_name = column[1]
             data_type = column[2]
-
             schema += (
                 f"- {column_name} ({data_type})\n"
             )
-
     return schema
