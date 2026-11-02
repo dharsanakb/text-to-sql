@@ -113,18 +113,13 @@ if "result" in st.session_state:
         st.write("Explanation:")
 
         st.write(result["explanation"])
-
-        
         st.header("5. SQL Validation")
 
         valid, message = validate_sql(sql)
 
         if valid:
 
-            st.success(message)
-
-
-           
+            st.success(message)           
             if st.button("Execute SQL"):
 
                 try:
