@@ -25,11 +25,8 @@ def create_database(uploaded_files):
         df.columns = df.columns.astype(str).str.strip()
         if df.empty or len(df.columns) == 0:
             continue
-        if not all(
-            isinstance(col, str) and col.strip()
-            for col in df.columns
-        ):
-            raise ValueError("Invalid column names.")
+        if not all(col for col in df.columns):
+            raise ValueError("Invalid or empty column names.")
         if not df.columns.is_unique:
             raise ValueError("Duplicate column names found.")
         df.to_sql(
