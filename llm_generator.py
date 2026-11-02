@@ -1,6 +1,6 @@
 import ollama
 
-MODEL_NAME = "llama3.1:8b"
+MODEL_NAME = "qwen2.5-coder:7b"
 
 SYSTEM_PROMPT = """
 You are an expert Text-to-SQL assistant specializing in complex
