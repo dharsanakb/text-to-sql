@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import sqlite3
@@ -6,7 +5,6 @@ import sqlite3
 from database import create_database, extract_schema
 from llm_generator import generate_sql
 from sql_validator import validate_sql
-
 
 st.set_page_config(
     page_title="AgentSQL",
@@ -23,7 +21,6 @@ st.write(
 
 st.divider()
 
-
 # 1. Upload dataset
 
 st.header("1. Upload CSV dataset")
@@ -37,8 +34,6 @@ uploaded_files = st.file_uploader(
 if not uploaded_files:
     st.info("Upload a CSV dataset to continue.")
     st.stop()
-
-
 # 2. Create database
 
 try:
@@ -69,7 +64,6 @@ st.header("3. Ask your question")
 
 question = st.text_area(
     "Enter your question",
-
     placeholder=(
         "Example: Show students who scored "
         "more than 80 marks."
@@ -90,7 +84,6 @@ strategy = st.selectbox(
 
     index=1
 )
-
 
 # 6. Generate SQL
 
@@ -123,8 +116,7 @@ if st.button("Generate SQL", type="primary"):
             st.error(
                 f"LLM generation failed: {error}"
             )
-
-
+            
 # 7. Display generated SQL
 
 if "result" in st.session_state:
@@ -229,10 +221,7 @@ if "result" in st.session_state:
                     st.error(
                         f"Execution failed: {error}"
                     )
-
         else:
 
             st.error(message)
-
-
 st.divider()
