@@ -57,9 +57,11 @@ def extract_schema(conn):
         schema += f"\nTable: {table_name}\n"
         schema += "Columns:\n"
         for column in columns:
-            column_name = column[1]
-            data_type = column[2]
-            schema += (
-                f"- {column_name} ({data_type})\n"
-            )
-    return schema
+            column_details.append({
+                  "column_name": column[1],
+                  "data_type": column[2],
+                  "not_null": bool(column[3]),
+                  "default_value": column[4],
+                  "primary_key": bool(column[5])
+             })
+    return schema    
