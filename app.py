@@ -114,10 +114,7 @@ if st.button("Generate SQL", type="primary"):
                 f"LLM generation failed: {error}"
             )
 
-
-# --------------------------------------------------
 # 7. Display generated SQL
-# --------------------------------------------------
 
 if "result" in st.session_state:
 
@@ -144,11 +141,8 @@ if "result" in st.session_state:
 
         st.write(result["explanation"])
 
-
-        # --------------------------------------------------
         # 8. Validate SQL
-        # --------------------------------------------------
-
+        
         st.header("5. SQL Validation")
 
         valid, message = validate_sql(sql)
@@ -158,10 +152,8 @@ if "result" in st.session_state:
             st.success(message)
 
 
-            # --------------------------------------------------
             # 9. Execute SQL safely
-            # --------------------------------------------------
-
+           
             if st.button("Execute SQL"):
 
                 try:
