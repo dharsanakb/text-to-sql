@@ -8,25 +8,34 @@ from llm_generator import generate_sql
 from sql_validator import validate_sql
 
 
+# --------------------------------------------------
+# 1. Page configuration
+# --------------------------------------------------
+
 st.set_page_config(
     page_title="AgentSQL",
     layout="wide"
 )
 
 st.title("AgentSQL")
-st.subheader("LLaMA-based Natural Language to SQL System")
+
+st.subheader(
+    "Schema-Guided Natural Language to SQL System"
+)
 
 st.write(
     "Ask questions in English and generate SQL "
-    "using an open-weight LLaMA model."
+    "using the Qwen2.5-Coder open-weight LLM."
 )
 
 st.divider()
 
 
-# 1. Upload dataset
+# --------------------------------------------------
+# 2. Upload CSV dataset
+# --------------------------------------------------
 
-st.header("1. Upload CSV dataset")
+st.header("1. Upload CSV Dataset")
 
 uploaded_files = st.file_uploader(
     "Choose CSV files",
@@ -39,11 +48,14 @@ if not uploaded_files:
     st.stop()
 
 
-# 2. Create database
+# --------------------------------------------------
+# 3. Create SQLite database
+# --------------------------------------------------
 
 try:
 
     conn = create_database(uploaded_files)
+
     schema = extract_schema(conn)
 
     st.success("Database created successfully!")
@@ -54,45 +66,36 @@ except Exception as error:
     st.stop()
 
 
-# 3. Display schema
+# --------------------------------------------------
+# 4. Display database schema
+# --------------------------------------------------
 
-st.header("2. Database schema")
+st.header("2. Database Schema")
 
 with st.expander("View tables and columns"):
 
     st.code(schema)
 
 
-# 4. Enter natural language question
+# --------------------------------------------------
+# 5. Enter natural language question
+# --------------------------------------------------
 
-st.header("3. Ask your question")
+st.header("3. Ask Your Question")
 
 question = st.text_area(
     "Enter your question",
 
     placeholder=(
-        "Example: Show students who scored "
-        "more than 80 marks."
+        "Example: Find the customer who has "
+        "the highest total spending."
     )
 )
 
 
-# 5. Select prompt strategy
-
-strategy = st.selectbox(
-    "Choose prompt engineering strategy",
-
-    [
-        "basic",
-        "schema-aware",
-        "few-shot"
-    ],
-
-    index=1
-)
-
-
-# 6. Generate SQL
+# --------------------------------------------------
+# 6. Generate SQL using the default prompt
+# --------------------------------------------------
 
 if st.button("Generate SQL", type="primary"):
 
@@ -102,21 +105,23 @@ if st.button("Generate SQL", type="primary"):
 
     else:
 
+        # Clear previous result
+        st.session_state.pop("result", None)
+
         try:
 
             with st.spinner(
-                "LLaMA is understanding your question..."
+                "Qwen is understanding your question "
+                "and generating SQL..."
             ):
 
                 result = generate_sql(
                     question,
-                    schema,
-                    strategy
+                    schema
                 )
 
             st.session_state.result = result
             st.session_state.question = question
-            st.session_state.strategy = strategy
 
         except Exception as error:
 
@@ -125,7 +130,9 @@ if st.button("Generate SQL", type="primary"):
             )
 
 
+# --------------------------------------------------
 # 7. Display generated SQL
+# --------------------------------------------------
 
 if "result" in st.session_state:
 
@@ -141,12 +148,21 @@ if "result" in st.session_state:
 
         sql = result["sql"]
 
-        st.code(sql, language="sql")
+        st.write("Generated SQL:")
+
+        st.code(
+            sql,
+            language="sql"
+        )
 
         st.write("Explanation:")
+
         st.write(result["explanation"])
 
+
+        # --------------------------------------------------
         # 8. Validate SQL
+        # --------------------------------------------------
 
         st.header("5. SQL Validation")
 
@@ -156,21 +172,30 @@ if "result" in st.session_state:
 
             st.success(message)
 
+
+            # --------------------------------------------------
             # 9. Execute SQL safely
+            # --------------------------------------------------
 
             if st.button("Execute SQL"):
 
                 try:
 
+                    # Enable read-only mode
                     conn.execute(
                         "PRAGMA query_only = ON"
                     )
 
+                    # Allow only read-related SQLite operations
                     allowed_actions = {
                         sqlite3.SQLITE_SELECT,
                         sqlite3.SQLITE_READ,
                         sqlite3.SQLITE_FUNCTION,
-                        sqlite3.SQLITE_RECURSIVE
+                        getattr(
+                            sqlite3,
+                            "SQLITE_RECURSIVE",
+                            -1
+                        )
                     }
 
                     def authorizer(
@@ -186,6 +211,7 @@ if "result" in st.session_state:
 
                         return sqlite3.SQLITE_DENY
 
+
                     conn.set_authorizer(authorizer)
 
                     cursor = conn.cursor()
@@ -193,9 +219,11 @@ if "result" in st.session_state:
                     cursor.execute(sql)
 
                     if cursor.description is None:
+
                         raise ValueError(
                             "No result set returned."
                         )
+
 
                     columns = [
                         item[0]
@@ -208,6 +236,11 @@ if "result" in st.session_state:
                         rows,
                         columns=columns
                     )
+
+
+                    # --------------------------------------------------
+                    # 10. Display query results
+                    # --------------------------------------------------
 
                     st.header("6. Query Results")
 
@@ -235,4 +268,12 @@ if "result" in st.session_state:
             st.error(message)
 
 
+# --------------------------------------------------
+# 11. Footer
+# --------------------------------------------------
+
 st.divider()
+
+st.caption(
+    "AgentSQL | Natural Language to SQL using Generative AI"
+)

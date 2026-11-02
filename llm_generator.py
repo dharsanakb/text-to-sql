@@ -1,155 +1,200 @@
+
 import ollama
+import json
+
+
+# --------------------------------------------------
+# 1. Model configuration
+# --------------------------------------------------
 
 MODEL_NAME = "qwen2.5-coder:7b"
 
+
+# --------------------------------------------------
+# 2. Default system prompt
+# --------------------------------------------------
+
 SYSTEM_PROMPT = """
-You are an expert Text-to-SQL assistant specializing in complex
-relational database queries.
+You are an expert Natural Language to SQL assistant.
 
-Your task is to convert natural language questions into accurate
-SQLite queries.
+Your task is to convert natural language questions
+into accurate SQLite SELECT queries.
 
-Follow these rules carefully:
+Follow the instructions carefully.
 
-1. Understand the exact meaning of the user's question before generating SQL.
+GENERAL RULES:
 
-2. Identify the entities, tables, columns, relationships, filters, grouping conditions, and expected output.
+1. Understand the exact meaning of the user's question.
 
-3. Use only the tables and columns provided in the database schema.
+2. Identify the relevant tables, columns, relationships,
+   filters, grouping conditions and expected output.
 
-4. Select the correct columns required by the question. Do not return unrelated columns.
+3. Use only the tables and columns provided in the
+   database schema.
 
-5. Use JOIN operations whenever information is distributed across multiple related tables.
+4. Never invent tables, columns or relationships.
 
-6. Use GROUP BY and HAVING when the question requires conditions on aggregated data.
+5. Use JOIN operations when information is distributed
+   across related tables.
 
-7. Use COUNT(DISTINCT column) when counting unique values.
+6. Generate valid SQLite syntax.
 
-8. Use subqueries when comparing individual results against overall totals or averages.
+AGGREGATION RULES:
 
-9. Pay special attention to words such as:
-   - Every / All: Consider whether all available categories,products, or conditions must be satisfied.
-   - At least: Use an appropriate minimum threshold.
-   - More than / Less than: Apply the correct comparison.
-   - Highest / Lowest: Consider ranking or maximum/minimum.
-   - Compared with previous: Consider window functions.
+7. Use SUM() when the question asks for total,
+   combined or overall values.
 
-10. Before returning SQL, verify that the query answers the complete question, not just part of it.
+8. Use MAX() when the question asks for the largest
+   individual value.
 
-11. Generate only one valid SQLite SELECT query.
+9. Use MIN() when the question asks for the smallest
+   individual value.
 
-12. Never invent tables or columns.
+10. Use AVG() when the question asks for an average.
 
-13. If the question cannot be answered using the schema, explain why instead of inventing SQL.
+11. Use COUNT() when the question asks for a number
+    of records.
 
-Return the SQL and a short explanation of its logic.
+12. Use COUNT(DISTINCT column) when counting unique
+    values.
 
+IMPORTANT DISTINCTION BETWEEN MAX AND SUM:
+
+13. Understand the difference between an individual
+    transaction and total spending.
+
+    Examples:
+
+    - "Highest individual sale" or "largest single
+      transaction" means MAX(SalesAmount).
+
+    - "Customer with highest total spending" means
+      SUM(SalesAmount), grouped by customer.
+
+    - "Customer who spent the most overall" means
+      SUM(SalesAmount), grouped by customer.
+
+    - "Total sales for each customer" means
+      SUM(SalesAmount) with GROUP BY.
+
+14. When finding the customer with the highest total
+    spending, use:
+
+    - SUM(SalesAmount)
+    - GROUP BY CustomerID and CustomerName
+    - ORDER BY total spending DESC
+    - LIMIT 1
+
+15. Do not use MAX(SalesAmount) when the question
+    asks for the highest total spending.
+
+16. When a question clearly asks for the customer
+    who made the largest individual purchase,
+    retrieve the customer associated with the
+    largest individual SalesAmount.
+
+QUERY RULES:
+
+17. Use WHERE for filtering individual rows.
+
+18. Use HAVING for filtering aggregated results.
+
+19. Use GROUP BY when calculating aggregates
+    for each customer or category.
+
+20. Use ORDER BY when ranking or sorting results.
+
+21. Use LIMIT when the question asks for the
+    highest, lowest, first or top result.
+
+22. Do not select non-aggregated columns alongside
+    aggregate functions without appropriate GROUP BY.
+
+23. Generate only one valid SQLite SELECT query.
+
+24. If the question cannot be answered using the
+    supplied schema, set answerable to false and
+    explain why.
+
+25. Before returning the query, check whether it
+    answers the complete natural language question.
+
+OUTPUT RULES:
+
+Return a JSON object containing:
+
+- answerable: Boolean
+- sql: SQL query as a string
+- explanation: Short explanation of the SQL logic
+
+If the question is not answerable:
+
+- Set answerable to false.
+- Set sql to an empty string.
+- Explain the reason in explanation.
+
+Do not include Markdown code fences in the SQL string.
 """
 
 
-def build_prompt(question, schema, strategy):
+# --------------------------------------------------
+# 3. Build the prompt
+# --------------------------------------------------
 
-    if strategy == "basic":
+def build_prompt(question, schema):
 
-        prompt = f"""
-Convert the following natural language
-question into a SQLite SQL query.
-
-Question:
-{question}
-
-Return the SQL query in JSON format.
-"""
-
-    elif strategy == "schema-aware":
-
-        prompt = f"""
+    prompt = f"""
 DATABASE SCHEMA:
 
 {schema}
+
 
 USER QUESTION:
 
 {question}
 
-Instructions:
 
-1. Identify the relevant table.
-2. Identify the required columns.
-3. Identify conditions and filters.
-4. Identify aggregation or grouping if needed.
-5. Generate the corresponding SQLite query.
+Generate the appropriate SQLite query using
+the database schema and system instructions.
 
-Use only the supplied schema.
+Return the result in the required JSON format.
 """
-
-    elif strategy == "few-shot":
-
-        prompt = f"""
-DATABASE SCHEMA:
-
-{schema}
-
-EXAMPLES:
-
-Question: Show all students.
-
-SQL:
-SELECT * FROM students;
-
-Question: Count all students.
-
-SQL:
-SELECT COUNT(*) FROM students;
-
-Question: Show students scoring above 80.
-
-SQL:
-SELECT * FROM students
-WHERE marks > 80;
-
-Question: Find the average marks.
-
-SQL:
-SELECT AVG(marks) FROM students;
-
-NOW GENERATE SQL FOR:
-
-{question}
-
-Use only tables and columns
-from the provided database schema.
-"""
-
-    else:
-
-        raise ValueError("Unknown prompt strategy.")
-
 
     return prompt
 
 
-def generate_sql(question, schema, strategy="schema-aware"):
+# --------------------------------------------------
+# 4. Generate SQL using Ollama
+# --------------------------------------------------
+
+def generate_sql(question, schema):
 
     prompt = build_prompt(
         question,
-        schema,
-        strategy
+        schema
     )
 
+
+    # Expected JSON response structure
     response_schema = {
         "type": "object",
+
         "properties": {
+
             "answerable": {
                 "type": "boolean"
             },
+
             "sql": {
                 "type": "string"
             },
+
             "explanation": {
                 "type": "string"
             }
+
         },
+
         "required": [
             "answerable",
             "sql",
@@ -157,7 +202,10 @@ def generate_sql(question, schema, strategy="schema-aware"):
         ]
     }
 
+
+    # Call the local LLM through Ollama
     response = ollama.chat(
+
         model=MODEL_NAME,
 
         messages=[
@@ -165,6 +213,7 @@ def generate_sql(question, schema, strategy="schema-aware"):
                 "role": "system",
                 "content": SYSTEM_PROMPT
             },
+
             {
                 "role": "user",
                 "content": prompt
@@ -180,21 +229,28 @@ def generate_sql(question, schema, strategy="schema-aware"):
         stream=False
     )
 
-    import json
 
+    # Parse JSON response
     result = json.loads(
         response.message.content
     )
 
+
+    # Return answerability information
     if not result["answerable"]:
+
         return {
             "answerable": False,
             "sql": "",
             "explanation": result["explanation"]
         }
 
+
+    # Return generated SQL
     return {
         "answerable": True,
+
         "sql": result["sql"].strip(),
+
         "explanation": result["explanation"]
     }
