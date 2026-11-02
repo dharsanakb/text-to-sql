@@ -6,8 +6,6 @@ from database import create_database, extract_schema
 from llm_generator import generate_sql
 from sql_validator import validate_sql
 
-# 1. Page configuration
-
 st.set_page_config(
     page_title="AgentSQL",
     layout="wide"
@@ -26,9 +24,6 @@ st.write(
 
 st.divider()
 
-
-# 2. Upload CSV dataset
-
 st.header("1. Upload CSV Dataset")
 
 uploaded_files = st.file_uploader(
@@ -41,33 +36,19 @@ if not uploaded_files:
     st.info("Upload a CSV dataset to continue.")
     st.stop()
 
-
-# 3. Create SQLite database
-
 try:
-
     conn = create_database(uploaded_files)
-
     schema = extract_schema(conn)
-
     st.success("Database created successfully!")
-
 except Exception as error:
-
     st.error(f"Database error: {error}")
     st.stop()
 
-
-# 4. Display database schema
-
 st.header("2. Database Schema")
-
 with st.expander("View tables and columns"):
 
     st.code(schema)
 
-
-# 5. Enter natural language question
 st.header("3. Ask Your Question")
 
 question = st.text_area(
@@ -79,18 +60,13 @@ question = st.text_area(
     )
 )
 
-
-# 6. Generate SQL using the default prompt
-
 if st.button("Generate SQL", type="primary"):
-
     if not question.strip():
 
         st.warning("Please enter a question.")
 
     else:
 
-        # Clear previous result
         st.session_state.pop("result", None)
 
         try:
@@ -113,9 +89,6 @@ if st.button("Generate SQL", type="primary"):
             st.error(
                 f"LLM generation failed: {error}"
             )
-
-# 7. Display generated SQL
-
 if "result" in st.session_state:
 
     result = st.session_state.result
@@ -141,7 +114,6 @@ if "result" in st.session_state:
 
         st.write(result["explanation"])
 
-        # 8. Validate SQL
         
         st.header("5. SQL Validation")
 
@@ -152,18 +124,15 @@ if "result" in st.session_state:
             st.success(message)
 
 
-            # 9. Execute SQL safely
            
             if st.button("Execute SQL"):
 
                 try:
 
-                    # Enable read-only mode
                     conn.execute(
                         "PRAGMA query_only = ON"
                     )
 
-                    # Allow only read-related SQLite operations
                     allowed_actions = {
                         sqlite3.SQLITE_SELECT,
                         sqlite3.SQLITE_READ,
@@ -213,10 +182,6 @@ if "result" in st.session_state:
                         rows,
                         columns=columns
                     )
-
-
-                    # 10. Display query results
-
                     st.header("6. Query Results")
 
                     st.success(
@@ -227,24 +192,16 @@ if "result" in st.session_state:
                         df,
                         use_container_width=True
                     )
-
                     st.caption(
                         "Maximum 100 rows displayed."
                     )
-
                 except Exception as error:
-
                     st.error(
                         f"Execution failed: {error}"
                     )
-
         else:
 
-            st.error(message)
-
-
-# 11. Footer
-
+            s\t.error(message)
 st.divider()
 
 st.caption(
